@@ -8,11 +8,11 @@
 //#define MQTT_SERVER_WAN "giovanazzi.ddns.net"
 #define MQTT_SERVER_WAN "idirect.dlinkddns.com"
 #define PORT "1883"
-#define HOME "prueba"
-#define ID "Esp-01"
-#define SITE "default"
-#define FLOOR "floor_0"
-#define DEPARTMENT "dto_0"
+#define HOME "casa"
+#define ID "esp-00"
+#define SITE "living"
+#define FLOOR "piso-0"
+#define DEPARTMENT "dto-0"
 
 String id_=ID;
 String home_=HOME;
@@ -111,6 +111,15 @@ String ServerWan_leido;
 String ServerLan_leido;
 String Port_leido;
 
+//listado de topicos
+
+
+String TopicoSw1;
+String TopicoSw2;
+String TopicoPir;
+String TopicoSensor;
+
+
 
 String scanWifi;
 
@@ -158,26 +167,30 @@ String pral = "<html>"
               "<meta http-equiv='Content-Type' content='text/html  ; charset=utf-8'/>"
               "<title>CONFIG ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
               "<body> "
-              "<h1>CONFIGURACION</h1><br>"
+              "<title>CONFIGURACION</title><br>"
+              
               "<form action='config' method='get' target='pantalla'>"
-              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:300px; height:900px; padding:10px; margin: 5px;'>"
+              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:250px; height:500px; padding:20px; margin: 20px;'>"
               "<legend><strong>Configurar del Dispositivo</strong></legend>"
-              "Wifi: <br> <input name='ssid' type='text' size='15'/> <br><br>"
-              "Password: <br> <input name='pass' type='password' size='15'/> <br><br>"
-              "Server WAN: <br> <input name='serverwan' type='text' size='15'/> <br><br>"
-              "Server LAN: <br> <input name='serverlan' type='text' size='15'/> <br><br>"
-              "Port MQTT: <br> <input name='port' type='text' size='15'/> <br><br>"
+              "<div align=left>Wifi...<input name='ssid' type='text' size='15'/></div>"
+              "<div align=left>Pass...<input name='pass' type='password' size='15'/></div>"
+              "<div align=left>Wan...<input name='serverwan' type='text' size='15'/> </div>"
+              "<div align=left>Lan....<input name='serverlan' type='text' size='15'/> </div>"
+              "<div align=left>Port....<input name='port' type='TEXT' size='5'/> </div><br>"
+
+              "<div align=left>TOPICS</div>"
+             
+              "<div align=left>Home....<input name='home' type='text' size='15'/> </div>"
+              "<div align=left>Depart...<input name='department' type='text' size='15'/> </div>"
+              "<div align=left>Floor.....<input name='floor' type='text' size='15'/> </div>"
+              "<div align=left>Place.....<input name='site' type='text' size='15'/> </div><br>"
               
-              "Department: <br> <input name='department' type='text' size='15'/> <br><br>"
-              "Home: <br> <input name='home' type='text' size='15'/> <br><br>"
-              "Floor: <br> <input name='floor' type='text' size='15'/> <br><br>"
-              "Site: <br> <input name='site' type='text' size='15'/> <br><br>"
-              
-              "Name Device: <br> <input name='id' type='text' size='15'/> <br><br>"
-              "Device SW 1: <br> <input name='topic1' type='text' size='15'/> <br><br>"
-              "Device SW 2: <br> <input name='topic2' type='text' size='15'/> <br><br>"
-              "Device SENSOR: <br> <input name='topicsensor' type='text' size='15'/> <br><br>"
-              "Device PIR: <br> <input name='topicpir' type='text' size='15'/> <br><br>"
+              "<div align=leftNAMES:</title></div><br>"
+              "<div align=left>Device.....<input name='id' type='text' size='15'/> </div>"
+              "<div align=left>Switch 1..<input name='topic1' type='text' size='15'/> </div>"
+              "<div align=left>Switch 2..<input name='topic2' type='text' size='15'/> </div>"
+              "<div align=left>Sensor.....<input name='topicsensor' type='text' size='15'/> 3.3 vcc</div>"
+              "<div align=left>Pir..........<input name='topicpir' type='text' size='15'/> 5 vcc</div><br>"
  
               "<input type='submit' value='Configurar Equipo' />"
               "</fieldset>"
@@ -292,7 +305,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Topic: ");
   Serial.println(topicStr);
   
-  if(topicStr == Topic1){
+  if(topicStr == "casa/dto-0/piso-0/living/esp-00/light1"){
        if(payload[0] == '1'){
           digitalWrite(Relay_1, HIGH);
           client.publish("prueba/light1/confirm", "Light 1 On");
@@ -303,7 +316,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
        }
   }
   
-  if(topicStr == Topic2){
+  if(topicStr == "casa/dto-0/piso-0/living/esp-00/light2"){
       if(payload[0] == '1'){
           digitalWrite(Relay_2, HIGH);
           client.publish("prueba/light2/confirm", "Light 2 On");
@@ -314,7 +327,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }
     }
 
-  if(topicStr == "prueba/sensor"){
+  if(topicStr == "casa/dto-0/piso-0/living/esp-00/dht11"){
        if(payload[0] == '1'){
            SensorHumTemp();
           }
@@ -592,6 +605,11 @@ void wifi_conf() {
   getTopic2.toCharArray(Topic2, Topic2_tamano);
   getTopicSensor.toCharArray(TopicSensor, TopicSensor_tamano);
   getTopicPir.toCharArray(TopicPir,TopicPir_tamano);
+
+  TopicoSw1=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopic1;
+  TopicoSw2=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopic2;
+  TopicoPir=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopicPir;
+  TopicoSensor=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopicSensor;
  
   Serial.print("ssid: ");  Serial.println(ssid);     //para depuracion
   Serial.print("pass: ");  Serial.println(pass);
@@ -599,24 +617,19 @@ void wifi_conf() {
   Serial.print("Server Lan MQTT: ");Serial.println(ServerLan);
   Serial.print("Puerto: ");Serial.println(Port);
   Serial.println();
-  Serial.print("Department: ");Serial.println(Department);
-  Serial.print("Home: ");Serial.println(Home);
-  Serial.print("Floor: ");Serial.println(Floor);
-  Serial.print("Site: ");Serial.println(Site);
-  Serial.print(getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite);
-  Serial.print("Id Device: ");Serial.println(Id);
-//   Serial.print(Home+"/"+Department+"/"+Floor+"/"+Site+"/"+Id);
-  Serial.print("Switch 1: ");Serial.println(Topic1);     //para depuracion
-//  Serial.print(Home+"/"+Department+"/"+Floor+"/"+Site+"/"+Id+"/"+Topic1);
-  Serial.print("Switch 2: "); Serial.println(Topic2);
-//  Serial.print(Home+"/"+Department+"/"+Floor+"/"+Site+"/"+Id+"/"+Topic2);
-  Serial.print("Sensor: ");Serial.println(TopicSensor);
-//  Serial.print(Home+"/"+Department+"/"+Floor+"/"+Site+"/"+Id+"/"+TopicSensor);
-  Serial.print("Pir: ");Serial.println(TopicPir);
-//  Serial.print(Home+"/"+Department+"/"+Floor+"/"+Site+"/"+Id+"/"+TopicPir);
-  Serial.println();
- 
- 
+  Serial.print("Department: ");Serial.println(getDepartment);
+  Serial.print("Home: ");Serial.println(getHome);
+  Serial.print("Floor: ");Serial.println(getFloor);
+  Serial.print("Site: ");Serial.println(getSite);
+  Serial.print(" Topic:");
+  Serial.println(getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite);
+  Serial.print("Device(Id): ");Serial.print(Id);Serial.print(" Topic:");
+  Serial.println(getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId);
+  Serial.print("Switch 1: ");Serial.print(Topic1);Serial.print(" Topic:");Serial.println(TopicoSw1);
+  Serial.print("Switch 2: "); Serial.print(Topic2);Serial.print(" Topic:");Serial.println(TopicoSw2);
+  Serial.print("Sensor: ");Serial.print(TopicSensor);Serial.print(" Topic:");Serial.println(TopicoSensor);
+  Serial.print("Pir: ");Serial.print(TopicPir);Serial.print(" Topic:");Serial.println(TopicoPir);
+  
   WiFi.begin(ssid, pass); 
   //Intentamos conectar
   
@@ -648,8 +661,10 @@ void wifi_conf() {
   graba(dir_serverwan, getServerWan);
   graba(dir_serverlan, getServerLan);
   server.send(200, "text/html", String("<h2>Conexion exitosa a: "+ getssid + "<br> Pass: '" + getpass + "' .<br>" 
-  + "<br> Topic1: " + getTopic1 + ".<br>" 
-  + "<br> Topic2: " + getTopic2 + ".<br>" 
+  + "<br> Topico Sw1: " + TopicoSw1 + ".<br>" 
+  + "<br> Topico Sw2: " + TopicoSw2 + ".<br>" 
+  + "<br> Topico Sensor: " + TopicoSensor + ".<br>" 
+  + "<br> Topico Pir: " + TopicoPir + ".<br>" 
   + "<br> Server Wan MQTT: " + getServerWan + ".<br>" 
   + "<br> Server Lan MQTT: " + getServerLan + ".<br>" 
   + "<br>El equipo se reiniciara Conectandose a la red configurada."));
@@ -711,6 +726,9 @@ void intento_conexion() {
 void reconexionMQTT(){
 
     int cuenta=0;
+
+
+    
     
     while (!client.connected()) {
       if (WiFi.status() != WL_CONNECTED) {
@@ -721,17 +739,34 @@ void reconexionMQTT(){
       Serial.println("Attempting MQTT connection...");
     // Generate client name based on MAC address and last 8 bits of microsecond counter
       String clientName;
-     clientName += "esp8266-";
+     //clientName += getId+"esp8266-";
+     clientName += "Esp-01";
       uint8_t mac[6];
       WiFi.macAddress(mac);
       clientName += macToStr(mac);
        Serial.println(clientName);
 
-      //if connected, subscribe to the topic(s) we want to be notified about
+      String str = ""; 
+      char charArray[100];
+           //if connected, subscribe to the topic(s) we want to be notified about
       if (client.connect((char*) clientName.c_str(),"diego","24305314")){
-        client.subscribe(Topic1);
-        client.subscribe(Topic2);
-        client.subscribe("prueba/sensor");
+        str = TopicoSw1;
+        str.toCharArray(charArray,str.length()+1);
+        Serial.println(charArray);
+        client.subscribe("casa/dto-0/piso-0/living/esp-00/light1");
+        client.subscribe("casa/dto-0/piso-0/living/esp-00/light2");
+        client.subscribe("casa/dto-0/piso-0/living/esp-00/dht11/temp");
+        client.subscribe("casa/dto-0/piso-0/living/esp-00/dht11/hum");
+        client.subscribe("casa/dto-0/piso-0/living/esp-00/pir");
+      /*  str = TopicoSw2;
+        str.toCharArray(charArray,str.length()+1);
+        client.subscribe(charArray);
+        str = TopicoSensor;
+        str.toCharArray(charArray,str.length()+1);
+        client.subscribe(charArray);
+        str = TopicoPir;
+        str.toCharArray(charArray,str.length()+1);
+        client.subscribe(charArray);*/
         digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
         Serial.println("MTQQ Connected");
       }
@@ -771,8 +806,8 @@ void SensorHumTemp(){
   
   temp_str.toCharArray(temp, temp_str.length()+1); 
   hum_str.toCharArray(hum, hum_str.length()+1); 
-  client.publish("prueba/sensor/temp/confirm",temp );
-  client.publish("prueba/sensor/hum/confirm",hum );
+  client.publish("casa/dto-0/piso-0/living/esp-00/dht11/temp/confirm",temp );
+  client.publish("casa/dto-0/piso-0/living/esp-00/dht11/hum/confirm",hum );
   
   digitalWrite(Led_Verde,true);
   Serial.print("Tiempo de lectura de sensor:"); Serial.print(millis()-tiempo);Serial.println(" mseg.");
@@ -811,10 +846,10 @@ void Botones(){
             digitalWrite(Relay_1,!digitalRead(Relay_1));
           }
         if(digitalRead(Relay_1)){
-            client.publish("prueba/light1/confirm", "Light 1 On");
+            client.publish("casa/dto-0/piso-0/living/esp-00/light1/confirm", "Light 1 On");
             Serial.println("Relay 1 ON!!");
           }else{
-            client.publish("prueba/light1/confirm", "Light 1 Off");
+            client.publish("casa/dto-0/piso-0/living/esp-00/light1/confirm", "Light 1 Off");
             Serial.println("Relay 1 OFF!!");}     
         }
      estadoSw_1Anterior=estadoSw_1; 
@@ -831,10 +866,10 @@ void Botones(){
             digitalWrite(Relay_2,!digitalRead(Relay_2));
           }
           if(digitalRead(Relay_2)){
-            client.publish("prueba/light2/confirm", "Light 2 On");
+            client.publish("casa/dto-0/piso-0/living/esp-00/light2/confirm", "Light 2 On");
             Serial.println("Relay 2 ON !!");
           }else{
-            client.publish("prueba/light2/confirm", "Light 2 Off");
+            client.publish("casa/dto-0/piso-0/living/esp-00/light2/confirm", "Light 2 Off");
             Serial.println("Relay 2 OFF !!");}     
         }
      estadoSw_2Anterior=estadoSw_2; 
@@ -844,10 +879,10 @@ void Botones(){
           statepinPIR = antirebote(pinPIR);
           if(statepinPIR){
               blink_100();
-              client.publish("prueba/pir/confirm", "PIR On");
+              client.publish("casa/dto-0/piso-0/living/esp-00/pir/confirm", "PIR On");
               Serial.println("PIR ON !!");
           }else{
-                client.publish("prueba/pir/confirm", "PIR Off");         
+                client.publish("casa/dto-0/piso-0/living/esp-00/pir/confirm", "PIR Off");         
                   Serial.println("PIR OFF !!");   
             }
          
