@@ -95,6 +95,8 @@ char Site[20];
 char Id[20];
 char Department[20];
 char Port[5];
+char UserMqtt[20];
+char PassMqtt[20];
 
 String ssid_leido;
 String pass_leido;
@@ -110,16 +112,28 @@ String TopicPir_leido;
 String ServerWan_leido;
 String ServerLan_leido;
 String Port_leido;
+String UserMqtt_leido;
+String PassMqtt_leido;
 
 //listado de topicos
 
 
 String TopicoSw1;
+char* TopicoSw1Char;
+
 String TopicoSw2;
+char* TopicoSw2Char;
+
 String TopicoPir;
+char* TopicoPirChar;
+
 String TopicoSensor;
+char* TopicoSensorChar;
 
-
+static String NTopicoSw1;
+static String NTopicoSw2;
+static String NTopicoPir;
+static String NTopicoSensor;
 
 String scanWifi;
 
@@ -137,6 +151,8 @@ int TopicPir_tamano = 0;
 int ServerWan_tamano = 0;
 int ServerLan_tamano = 0;
 int Port_tamano = 0;
+int UserMqtt_tamano = 0;
+int PassMqtt_tamano = 0;
 
 ////// ADDRESS EEPROM
 int dir_modo= 0; //0=normal 1 configuracion
@@ -155,6 +171,9 @@ int dir_home =300;
 int dir_floor =320;
 int dir_site =340;
 int dir_id=360;
+int dir_userMqtt=380;
+int dir_passMqtt=400;
+
 
 
 
@@ -165,41 +184,38 @@ WiFiClient wifiClient;          //creo el cliente
 // defino pagina de inicio
 String pral = "<html>"
               "<meta http-equiv='Content-Type' content='text/html  ; charset=utf-8'/>"
-              "<title>CONFIG ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
+              "<title>ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
               "<body> "
-              "<title>CONFIGURACION</title><br>"
-              
+              "<title>CONFIGURACION</title><br>"              
               "<form action='config' method='get' target='pantalla'>"
-              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:250px; height:500px; padding:20px; margin: 20px;'>"
-              "<legend><strong>Configurar del Dispositivo</strong></legend>"
-              "<div align=left>Wifi...<input name='ssid' type='text' size='15'/></div>"
-              "<div align=left>Pass...<input name='pass' type='password' size='15'/></div>"
-              "<div align=left>Wan...<input name='serverwan' type='text' size='15'/> </div>"
-              "<div align=left>Lan....<input name='serverlan' type='text' size='15'/> </div>"
-              "<div align=left>Port....<input name='port' type='TEXT' size='5'/> </div><br>"
-
-              "<div align=left>TOPICS</div>"
-             
-              "<div align=left>Home....<input name='home' type='text' size='15'/> </div>"
-              "<div align=left>Depart...<input name='department' type='text' size='15'/> </div>"
-              "<div align=left>Floor.....<input name='floor' type='text' size='15'/> </div>"
-              "<div align=left>Place.....<input name='site' type='text' size='15'/> </div><br>"
-              
-              "<div align=leftNAMES:</title></div><br>"
-              "<div align=left>Device.....<input name='id' type='text' size='15'/> </div>"
+              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:300px; height:600px; padding:20px; margin: 20px;'>"
+              "<legend><strong>CONFIGURATION</strong></legend>"              
+              "<div align=center>WIRELESS</div><br>"
+              "<div align=left> Wifi........<input name='ssid' type='text' size='15'/></div>"
+              "<div align=left> Pass........<input name='pass' type='password' size='15'/></div>"
+              "<div align=left> Wan........<input name='serverwan' type='text' size='15'/> </div>"
+              "<div align=left> Lan.........<input name='serverlan' type='text' size='15'/> </div>"
+              "<div align=left> Port.........<input name='port' type='TEXT' size='5'/> </div><br>"
+              "<div align=center>TOPICS</div><br>"             
+              "<div align=left>Home......<input name='home' type='text' size='15'/> </div>"
+              "<div align=left>Floor........<input name='floor' type='text' size='15'/> </div>"
+              "<div align=left>Depart.......<input name='department' type='text' size='15'/> </div>"
+              "<div align=left>Place.......<input name='site' type='text' size='15'/> </div><br>"              
+              "<div align=center>DEVICE</div><br>"
+              "<div align=left>ID............<input name='id' type='text' size='15'/> </div>"
               "<div align=left>Switch 1..<input name='topic1' type='text' size='15'/> </div>"
               "<div align=left>Switch 2..<input name='topic2' type='text' size='15'/> </div>"
               "<div align=left>Sensor.....<input name='topicsensor' type='text' size='15'/> 3.3 vcc</div>"
-              "<div align=left>Pir..........<input name='topicpir' type='text' size='15'/> 5 vcc</div><br>"
- 
-              "<input type='submit' value='Configurar Equipo' />"
+              "<div align=left>Pir...........<input name='topicpir' type='text' size='15'/> 5 vcc</div><br>"
+              "<div align=center>MQTT</div><br>"           
+              "<div align=left>User.......<input name='userMqtt' type='text' size='15'/> </div>"
+              "<div align=left>Password..<input name='passMqtt' type='password' size='15'/> </div><br>"             
+              "<input type='submit' value='APPLY CONFIGURATION' />"
               "</fieldset>"
               "</form>"
               "<iframe id='pantalla' name='pantalla' src='' width=1200px height=700px frameborder='0' scrolling='yes'></iframe>"
               "</body>"
               "</html>";
-
-
 
 void setup() {
 
@@ -252,9 +268,8 @@ if(value){
             Serial.print("hidden: "); Serial.println(hidden);
             Serial.println();
 
-      }else{    Serial.println("**********MODO NORMAL************");  
-           
-           
+      }else{
+           Serial.println("**********MODO NORMAL************");  
            ServerLan_leido= lee(dir_serverlan);
            ServerWan_leido= lee(dir_serverwan);
            ServerLan_tamano = ServerLan_leido.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
@@ -301,33 +316,35 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   //convert topic to string to make it easier to work with
   String topicStr = topic; 
+  Serial.print("Topic: ");Serial.print(topicStr);
 
-  Serial.print("Topic: ");
-  Serial.println(topicStr);
-  
-  if(topicStr == "casa/dto-0/piso-0/living/esp-00/light1"){
+  if(topicStr == "casa/piso-0/dto-0/living/esp-00/light1"){
        if(payload[0] == '1'){
           digitalWrite(Relay_1, HIGH);
-          client.publish("prueba/light1/confirm", "Light 1 On");
+          client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "On");
+            Serial.println(" = 1");
           }
        else {
           digitalWrite(Relay_1, LOW);
-          client.publish("prueba/light1/confirm", "Light 1 Off");
+          client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "Off");
+           Serial.println(" = 0");
        }
   }
   
-  if(topicStr == "casa/dto-0/piso-0/living/esp-00/light2"){
+  if(topicStr == "casa/piso-0/dto-0/living/esp-00/light2"){
       if(payload[0] == '1'){
           digitalWrite(Relay_2, HIGH);
-          client.publish("prueba/light2/confirm", "Light 2 On");
+          client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "On");
+           Serial.println(" = 1");
           }
       else{
           digitalWrite(Relay_2, LOW);
-         client.publish("prueba/light2/confirm", "Light 2 Off");
+         client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "Off");
+          Serial.println(" = 0");
       }
     }
 
-  if(topicStr == "casa/dto-0/piso-0/living/esp-00/dht11"){
+  if(topicStr == "casa/piso-0/dto-0/living/esp-00/dht11"){
        if(payload[0] == '1'){
            SensorHumTemp();
           }
@@ -470,8 +487,10 @@ String lee(int addr) {
 
 //*******  L E E R    C O N F I G U R A C I O N    *****
 void ReadDataEprom(){
-    
-  ssid_leido      = lee(dir_ssid);      //leemos ssid y password
+
+  Serial.println("Lectura de EEPROM...");
+  
+  ssid_leido      = lee(dir_ssid);
   pass_leido      = lee(dir_pass);
   Home_leido      = lee(dir_home);
   Floor_leido     = lee(dir_floor);
@@ -485,21 +504,28 @@ void ReadDataEprom(){
   ServerWan_leido = lee(dir_serverwan);
   ServerLan_leido = lee(dir_serverlan);
   Port_leido      = lee(dir_puerto);
+  UserMqtt_leido  = lee(dir_userMqtt);
+  PassMqtt_leido = lee(dir_passMqtt);
+  
  
-  ServerWan_leido = arregla_simbolos(ServerWan_leido); //Reemplazamos los simbolos que aparecen cun UTF8 por el simbolo correcto
-  ServerLan_leido = arregla_simbolos(ServerLan_leido);
-  ssid_leido      = arregla_simbolos(ssid_leido); //Reemplazamos los simbolos que aparecen cun UTF8 por el simbolo correcto
-  pass_leido      = arregla_simbolos(pass_leido);
-  Topic1_leido    = arregla_simbolos(Topic1_leido); //Reemplazamos los simbolos que aparecen cun UTF8 por el simbolo correcto
-  Topic2_leido    = arregla_simbolos(Topic2_leido);
-  Home_leido      = arregla_simbolos(Home_leido);
-  Floor_leido     = arregla_simbolos(Floor_leido);
-  Site_leido      = arregla_simbolos(Site_leido);
-  Id_leido        = arregla_simbolos(Id_leido);
-  Department_leido= arregla_simbolos(Department_leido);
-  TopicSensor_leido = arregla_simbolos(TopicSensor_leido);
-  TopicPir_leido    = arregla_simbolos(TopicPir_leido);
-  Port_leido      = arregla_simbolos(Port_leido);
+  ServerWan_leido = arregla_simbolos(ServerWan_leido);Serial.print("Eprom ServerWan_leido:");Serial.println(ServerWan_leido);
+  ServerLan_leido = arregla_simbolos(ServerLan_leido);Serial.print("Eprom ServerLan_leido:");Serial.println(ServerLan_leido);
+  ssid_leido      = arregla_simbolos(ssid_leido);Serial.print("Eprom ssid_leido:");Serial.println(ssid_leido);
+  pass_leido      = arregla_simbolos(pass_leido);Serial.print("Eprom pass_leido:");Serial.println(pass_leido);
+  Topic1_leido    = arregla_simbolos(Topic1_leido);Serial.print("Eprom Topic1_leido:");Serial.println(Topic1_leido);
+  Topic2_leido    = arregla_simbolos(Topic2_leido);Serial.print("Eprom Topic2_leido:");Serial.println(Topic2_leido);
+  Home_leido      = arregla_simbolos(Home_leido);Serial.print("Eprom Home_leido:");Serial.println(Home_leido);
+  Floor_leido     = arregla_simbolos(Floor_leido);Serial.print("Eprom Floor_leido:");Serial.println(Floor_leido);
+  Site_leido      = arregla_simbolos(Site_leido);Serial.print("Eprom Site_leido:");Serial.println(Site_leido);
+  Id_leido        = arregla_simbolos(Id_leido);Serial.print("Eprom Id_leido:");Serial.println(Id_leido);
+  Department_leido= arregla_simbolos(Department_leido);Serial.print("Eprom Department_leido:");Serial.println(Department_leido);
+  TopicSensor_leido = arregla_simbolos(TopicSensor_leido);Serial.print("Eprom TopicSensor_leido:");Serial.println(TopicSensor_leido);
+  TopicPir_leido    = arregla_simbolos(TopicPir_leido);Serial.print("Eprom TopicPir_leido:");Serial.println(TopicPir_leido);
+  Port_leido      = arregla_simbolos(Port_leido);Serial.print("Eprom Port_leido:");Serial.println(Port_leido);
+  UserMqtt_leido      = arregla_simbolos(UserMqtt_leido);Serial.print("Eprom UserMqtt_leido:");Serial.println(UserMqtt_leido);
+  PassMqtt_leido   = arregla_simbolos(PassMqtt_leido);Serial.print("Eprom PassMqtt_leido:");Serial.println(PassMqtt_leido);
+
+  
 
   ServerWan_tamano  = ServerWan_leido.length() ;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
   ServerLan_tamano  = ServerLan_leido.length() ;
@@ -515,6 +541,8 @@ void ReadDataEprom(){
   TopicSensor_tamano = TopicSensor_leido.length();
   TopicPir_tamano    = TopicPir_leido.length();
   Port_tamano      = Port_leido.length();
+  UserMqtt_tamano      =UserMqtt_leido.length();
+  PassMqtt_tamano  = PassMqtt_leido.length();
   
   ServerWan_leido.toCharArray(ServerWan, ServerWan_tamano); //Transformamos el string en un char array ya que es lo que nos pide WIFI.begin()
   ServerLan_leido.toCharArray(ServerLan, ServerLan_tamano);
@@ -529,7 +557,23 @@ void ReadDataEprom(){
   Department_leido.toCharArray(Department,Department_tamano);;
   TopicSensor_leido.toCharArray(TopicSensor,TopicSensor_tamano);;
   TopicPir_leido.toCharArray(TopicPir,TopicPir_tamano);;
-  Port_leido.toCharArray(Port,Port_tamano);;
+  Port_leido.toCharArray(Port,Port_tamano);
+  UserMqtt_leido.toCharArray(UserMqtt,UserMqtt_tamano);
+  PassMqtt_leido.toCharArray(PassMqtt,PassMqtt_tamano);
+//"casa/piso-0/dto-0/living/esp-00/light1";
+
+
+  
+  NTopicoSw1=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido;
+  NTopicoSw2=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido;
+  NTopicoSensor=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido;
+  NTopicoPir=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido;
+
+  Serial.print("Eprom TopicoSw1:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido);
+  Serial.print("Eprom TopicoSw2:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido);
+  Serial.print("Eprom TopicoSensor:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido);
+  Serial.print("Eprom TopicoPir:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido);
+  
   }
 
 //**** CONFIGURACION WIFI  *******
@@ -553,6 +597,20 @@ void wifi_conf() {
   String getTopicSensor = server.arg("topicsensor");
   String getTopicPir = server.arg("topicpir");
 
+  String getUserMqtt = server.arg("userMqtt");
+  String getPassMqtt = server.arg("passMqtt");
+
+  
+   Serial.print(" INFO CARGADA EN LA WEB");
+   Serial.print("NTopicoSw1 : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic1);
+   Serial.print("NTopicoSw2 : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic2);
+   Serial.print("NTopicoSensor : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicSensor);
+   Serial.print("NTopicoPir : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicPir);
+   Serial.print("getUserMqtt : ");Serial.println(getUserMqtt);
+   Serial.print("getPassMqtt : ");Serial.println(getPassMqtt);
+   
+  //////////////////
+
   getssid = arregla_simbolos(getssid); //Reemplazamos los simbolos que aparecen cun UTF8 por el simbolo correcto
   getpass = arregla_simbolos(getpass);
   getServerWan = arregla_simbolos(getServerWan); //Reemplazamos los simbolos que aparecen cun UTF8 por el simbolo correcto
@@ -569,6 +627,9 @@ void wifi_conf() {
   getTopic2 = arregla_simbolos(getTopic2);
   getTopicSensor = arregla_simbolos(getTopicSensor);
   getTopicPir = arregla_simbolos(getTopicPir); 
+
+  getUserMqtt = arregla_simbolos(getUserMqtt);
+  getPassMqtt = arregla_simbolos(getPassMqtt);
 
   
   ssid_tamano = getssid.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
@@ -588,6 +649,9 @@ void wifi_conf() {
   TopicSensor_tamano = getTopicSensor.length() +1;
   TopicPir_tamano = getTopicPir.length() +1;
 
+  UserMqtt_tamano = getUserMqtt.length() +1;
+  PassMqtt_tamano = getPassMqtt.length() +1;
+  
   getssid.toCharArray(ssid, ssid_tamano); //Transformamos el string en un char array ya que es lo que nos pide WIFI.begin()
   getpass.toCharArray(pass, pass_tamano);
   getServerWan.toCharArray(ServerWan, ServerWan_tamano); //Transformamos el string en un char array ya que es lo que nos pide WIFI.begin()
@@ -606,10 +670,13 @@ void wifi_conf() {
   getTopicSensor.toCharArray(TopicSensor, TopicSensor_tamano);
   getTopicPir.toCharArray(TopicPir,TopicPir_tamano);
 
-  TopicoSw1=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopic1;
-  TopicoSw2=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopic2;
-  TopicoPir=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopicPir;
-  TopicoSensor=getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId+"/"+getTopicSensor;
+  getUserMqtt.toCharArray(UserMqtt,UserMqtt_tamano);
+  getPassMqtt.toCharArray(PassMqtt,PassMqtt_tamano);
+
+  TopicoSw1=getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic1;
+  TopicoSw2=getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic2;
+  TopicoPir=getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicPir;
+  TopicoSensor=getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicSensor;
  
   Serial.print("ssid: ");  Serial.println(ssid);     //para depuracion
   Serial.print("pass: ");  Serial.println(pass);
@@ -622,14 +689,14 @@ void wifi_conf() {
   Serial.print("Floor: ");Serial.println(getFloor);
   Serial.print("Site: ");Serial.println(getSite);
   Serial.print(" Topic:");
-  Serial.println(getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite);
-  Serial.print("Device(Id): ");Serial.print(Id);Serial.print(" Topic:");
-  Serial.println(getHome+"/"+getDepartment+"/"+getFloor+"/"+getSite+"/"+getId);
+  Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite);
+  Serial.print("Device(Id): ");Serial.print(Id);Serial.print(" Topic:");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId);
   Serial.print("Switch 1: ");Serial.print(Topic1);Serial.print(" Topic:");Serial.println(TopicoSw1);
   Serial.print("Switch 2: "); Serial.print(Topic2);Serial.print(" Topic:");Serial.println(TopicoSw2);
   Serial.print("Sensor: ");Serial.print(TopicSensor);Serial.print(" Topic:");Serial.println(TopicoSensor);
   Serial.print("Pir: ");Serial.print(TopicPir);Serial.print(" Topic:");Serial.println(TopicoPir);
-  
+  Serial.print("User Mqtt: ");Serial.print(UserMqtt);
+  Serial.print("Pass Mqtt: ");Serial.print(PassMqtt);
   WiFi.begin(ssid, pass); 
   //Intentamos conectar
   
@@ -654,21 +721,39 @@ void wifi_conf() {
   graba(dir_conf, "configurado");
   EEPROM.write(dir_modo,0);
   EEPROM.commit();
+  
   graba(dir_ssid, getssid);
   graba(dir_pass, getpass);
-  graba(dir_topic1, getTopic1);
-  graba(dir_topic2, getTopic2);
   graba(dir_serverwan, getServerWan);
   graba(dir_serverlan, getServerLan);
+  graba(dir_puerto, getPort);
+
+  graba(dir_home, getHome);
+  graba(dir_floor, getFloor);
+  graba(dir_site, getSite);
+  graba(dir_department, getDepartment);
+  
+  graba(dir_id, getId);
+  graba(dir_topic1, getTopic1);
+  graba(dir_topic2, getTopic2);
+  graba(dir_topic_sensor, getTopicSensor);
+  graba(dir_topic_pir, getTopicPir);
+
+  graba(dir_userMqtt, getUserMqtt);
+  graba(dir_passMqtt, getPassMqtt);
+  
+  
   server.send(200, "text/html", String("<h2>Conexion exitosa a: "+ getssid + "<br> Pass: '" + getpass + "' .<br>" 
-  + "<br> Topico Sw1: " + TopicoSw1 + ".<br>" 
-  + "<br> Topico Sw2: " + TopicoSw2 + ".<br>" 
-  + "<br> Topico Sensor: " + TopicoSensor + ".<br>" 
-  + "<br> Topico Pir: " + TopicoPir + ".<br>" 
+  + "<br> Topico Sw1: " + getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic1 + ".<br>" 
+  + "<br> Topico Sw2: " + getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic2 + ".<br>" 
+  + "<br> Topico Sensor: " + getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicSensor + ".<br>" 
+  + "<br> Topico Pir: " + getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicPir + ".<br>" 
   + "<br> Server Wan MQTT: " + getServerWan + ".<br>" 
   + "<br> Server Lan MQTT: " + getServerLan + ".<br>" 
+  + "<br> User MQTT: " + getUserMqtt + ".<br>" 
+  + "<br> Pass MQTT: " + getPassMqtt + ".<br>" 
   + "<br>El equipo se reiniciara Conectandose a la red configurada."));
-  delay(50);
+  delay(100);
   ESP.restart();
 }
 
@@ -680,14 +765,26 @@ void intento_conexion() {
     Serial.println(ssid_leido);  //Para depuracion
     Serial.print("PASS: ");  //Para depuracion
     Serial.println(pass_leido);
-    Serial.print("TOPIC 1: ");  //Para depuracion
-    Serial.println(Topic1_leido);  //Para depuracion
-    Serial.print("TOPIC 2: ");  //Para depuracion
-    Serial.println(Topic2_leido);
     Serial.print("Server Lan MQTT: ");  //Para depuracion
     Serial.println(ServerLan_leido);  //Para depuracion
     Serial.print("Server Wan MQTT: ");  //Para depuracion
     Serial.println(ServerWan_leido);
+
+    Serial.print("Id Device: ");  //Para depuracion
+    Serial.println(Id_leido);  //Para depuracion
+    Serial.print("Switch 1: ");  //Para depuracion
+    Serial.println(Topic1_leido);  //Para depuracion
+    Serial.print("Switch 2: ");  //Para depuracion
+    Serial.println(Topic2_leido);
+    Serial.print("Sensor: ");  //Para depuracion
+    Serial.println(TopicSensor_leido);  //Para depuracion
+    Serial.print("Pir: ");  //Para depuracion
+    Serial.println(TopicPir_leido);
+    Serial.print("User mqtt: ");  //Para depuracion
+    Serial.println(UserMqtt_leido);
+    Serial.print("Pass mqtt: ");  //Para depuracion
+    Serial.println(PassMqtt_leido);
+  
 
     ssid_tamano = ssid_leido.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
     pass_tamano = pass_leido.length() + 1;
@@ -727,9 +824,6 @@ void reconexionMQTT(){
 
     int cuenta=0;
 
-
-    
-    
     while (!client.connected()) {
       if (WiFi.status() != WL_CONNECTED) {
         ESP.restart();
@@ -740,33 +834,29 @@ void reconexionMQTT(){
     // Generate client name based on MAC address and last 8 bits of microsecond counter
       String clientName;
      //clientName += getId+"esp8266-";
-     clientName += "Esp-01";
+     clientName += "esp8266-";
       uint8_t mac[6];
       WiFi.macAddress(mac);
       clientName += macToStr(mac);
        Serial.println(clientName);
+       String topicS1 =Home_leido+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido;
+        Serial.print("topicS1: "); Serial.println(topicS1);
+       String topicS2 =Home_leido+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido;
+       String topicSen =Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido;
+       String topicPir =Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido;
+       
+       
+     //  Serial.println(" REconexion MQTT NTopicoSw1 :"); Serial.println(NTopicoSw1);
 
-      String str = ""; 
-      char charArray[100];
+       
            //if connected, subscribe to the topic(s) we want to be notified about
       if (client.connect((char*) clientName.c_str(),"diego","24305314")){
-        str = TopicoSw1;
-        str.toCharArray(charArray,str.length()+1);
-        Serial.println(charArray);
-        client.subscribe("casa/dto-0/piso-0/living/esp-00/light1");
-        client.subscribe("casa/dto-0/piso-0/living/esp-00/light2");
-        client.subscribe("casa/dto-0/piso-0/living/esp-00/dht11/temp");
-        client.subscribe("casa/dto-0/piso-0/living/esp-00/dht11/hum");
-        client.subscribe("casa/dto-0/piso-0/living/esp-00/pir");
-      /*  str = TopicoSw2;
-        str.toCharArray(charArray,str.length()+1);
-        client.subscribe(charArray);
-        str = TopicoSensor;
-        str.toCharArray(charArray,str.length()+1);
-        client.subscribe(charArray);
-        str = TopicoPir;
-        str.toCharArray(charArray,str.length()+1);
-        client.subscribe(charArray);*/
+      
+        client.subscribe((char*)topicS1.c_str());
+        //client.subscribe((char*)NTopicoSw2.c_str());
+        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11/temp");
+        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11/hum");
+        client.subscribe("casa/piso-0/dto-0/living/esp-00/pir");
         digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
         Serial.println("MTQQ Connected");
       }
@@ -806,8 +896,8 @@ void SensorHumTemp(){
   
   temp_str.toCharArray(temp, temp_str.length()+1); 
   hum_str.toCharArray(hum, hum_str.length()+1); 
-  client.publish("casa/dto-0/piso-0/living/esp-00/dht11/temp/confirm",temp );
-  client.publish("casa/dto-0/piso-0/living/esp-00/dht11/hum/confirm",hum );
+  client.publish("casa/piso-0/dto-0/living/esp-00/dht11/temp/confirm",temp );
+  client.publish("casa/piso-0/dto-0/living/esp-00/dht11/hum/confirm",hum );
   
   digitalWrite(Led_Verde,true);
   Serial.print("Tiempo de lectura de sensor:"); Serial.print(millis()-tiempo);Serial.println(" mseg.");
@@ -846,11 +936,11 @@ void Botones(){
             digitalWrite(Relay_1,!digitalRead(Relay_1));
           }
         if(digitalRead(Relay_1)){
-            client.publish("casa/dto-0/piso-0/living/esp-00/light1/confirm", "Light 1 On");
-            Serial.println("Relay 1 ON!!");
+            client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "On");
+            Serial.println("Switch 1 ON!!");
           }else{
-            client.publish("casa/dto-0/piso-0/living/esp-00/light1/confirm", "Light 1 Off");
-            Serial.println("Relay 1 OFF!!");}     
+            client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "Off");
+            Serial.println("Switch 1 OFF!!");}     
         }
      estadoSw_1Anterior=estadoSw_1; 
 //////********  BOTON 2  
@@ -866,11 +956,11 @@ void Botones(){
             digitalWrite(Relay_2,!digitalRead(Relay_2));
           }
           if(digitalRead(Relay_2)){
-            client.publish("casa/dto-0/piso-0/living/esp-00/light2/confirm", "Light 2 On");
-            Serial.println("Relay 2 ON !!");
+            client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "On");
+            Serial.println("Switch 2 ON !!");
           }else{
-            client.publish("casa/dto-0/piso-0/living/esp-00/light2/confirm", "Light 2 Off");
-            Serial.println("Relay 2 OFF !!");}     
+            client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "Off");
+            Serial.println("Switch 2 OFF !!");}     
         }
      estadoSw_2Anterior=estadoSw_2; 
 //////********  PIR 
@@ -879,10 +969,10 @@ void Botones(){
           statepinPIR = antirebote(pinPIR);
           if(statepinPIR){
               blink_100();
-              client.publish("casa/dto-0/piso-0/living/esp-00/pir/confirm", "PIR On");
+              client.publish("casa/piso-0/dto-0/living/esp-00/pir/confirm", "On");
               Serial.println("PIR ON !!");
           }else{
-                client.publish("casa/dto-0/piso-0/living/esp-00/pir/confirm", "PIR Off");         
+                client.publish("casa/piso-0/dto-0/living/esp-00/pir/confirm", "Off");         
                   Serial.println("PIR OFF !!");   
             }
          
