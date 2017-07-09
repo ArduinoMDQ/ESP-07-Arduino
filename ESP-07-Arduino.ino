@@ -878,9 +878,11 @@ void reconexionMQTT(){
       if (client.connect((char*)clientName.c_str(),(char*)UserMqtt_leido.c_str(),(char*)PassMqtt_leido.c_str())){
 
        client.subscribe((char*)NTopicoSw1.c_str());
-        client.subscribe((char*)NTopicoSw2.c_str());
-        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11");
-        client.subscribe("casa/piso-0/dto-0/living/esp-00/pir");
+       client.subscribe((char*)NTopicoSw2.c_str());
+      //  client.subscribe("casa/piso-0/dto-0/living/esp-01/dht11");
+       client.subscribe((char*)NTopicoSensor.c_str());
+       client.subscribe((char*)NTopicoPir.c_str());
+      //  client.subscribe("casa/piso-0/dto-0/living/esp-01/pir");
         digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
         Serial.println("MTQQ Connected");
       }
@@ -922,7 +924,7 @@ void SensorHumTemp(){
   hum_str.toCharArray(hum, hum_str.length()+1); 
   
   client.publish((char*)NTopicoSensorTempConfirm.c_str(),temp );
-  client.publish((char*)NTopicoSensorTempConfirm.c_str(),hum );
+  client.publish((char*)NTopicoSensorHumConfirm.c_str(),hum );
   
   digitalWrite(Led_Verde,true);
   Serial.print("Tiempo de lectura de sensor:"); Serial.print(millis()-tiempo);Serial.println(" mseg.");
@@ -961,10 +963,10 @@ void Botones(){
             digitalWrite(Relay_1,!digitalRead(Relay_1));
           }
         if(digitalRead(Relay_1)){
-            client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "On");
+            client.publish((char*)NTopicoSw1Confirm.c_str(), "On");
             Serial.println("Switch 1 ON!!");
           }else{
-            client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "Off");
+            client.publish((char*)NTopicoSw1Confirm.c_str(), "Off");
             Serial.println("Switch 1 OFF!!");}     
         }
      estadoSw_1Anterior=estadoSw_1; 
@@ -981,10 +983,10 @@ void Botones(){
             digitalWrite(Relay_2,!digitalRead(Relay_2));
           }
           if(digitalRead(Relay_2)){
-            client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "On");
+            client.publish((char*)NTopicoSw2Confirm.c_str(), "On");
             Serial.println("Switch 2 ON !!");
           }else{
-            client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "Off");
+            client.publish((char*)NTopicoSw2Confirm.c_str(), "Off");
             Serial.println("Switch 2 OFF !!");}     
         }
      estadoSw_2Anterior=estadoSw_2; 
@@ -994,10 +996,10 @@ void Botones(){
           statepinPIR = antirebote(pinPIR);
           if(statepinPIR){
               blink_100();
-              client.publish("casa/piso-0/dto-0/living/esp-00/pir/confirm", "On");
+              client.publish((char*)NTopicoPirConfirm.c_str(), "On");
               Serial.println("PIR ON !!");
           }else{
-                client.publish("casa/piso-0/dto-0/living/esp-00/pir/confirm", "Off");         
+                client.publish((char*)NTopicoPirConfirm.c_str(), "Off");         
                   Serial.println("PIR OFF !!");   
             }
          
@@ -1062,6 +1064,7 @@ void Botones(){
           int largo2=NTopicoSw2.length();
           int largo3=NTopicoSensor.length();
           int largo4=NTopicoPir.length();
+
           
            for(int i=0;i<=largo;i++)
             {
@@ -1085,6 +1088,8 @@ void Botones(){
 
            NTopicoSw2=cadenaS;
            NTopicoSw2Confirm=cadenaS+"/confirm";
+
+           
            cadenaS="";
 
            for(int i=0;i<=largo3;i++)
@@ -1098,6 +1103,7 @@ void Botones(){
            NTopicoSensor=cadenaS;
            NTopicoSensorTempConfirm=cadenaS+"/temp/confirm";
            NTopicoSensorHumConfirm=cadenaS+"/hum/confirm";
+           
            cadenaS="";
 
            for(int i=0;i<=largo4;i++)
@@ -1118,10 +1124,8 @@ void Botones(){
            Serial.print("NTopicoSw2 concatenado: ");Serial.println(NTopicoSw2);
            Serial.print("NTopicoSw2Confirm concatenado: ");Serial.println(NTopicoSw2Confirm);
            
-           Serial.print("NTopicoSensorTemp concatenado: ");Serial.println(NTopicoTempSensor);
+           Serial.print("NTopicoSensor concatenado: ");Serial.println(NTopicoSensor);
            Serial.print("NTopicoSensorTempConfirm concatenado: ");Serial.println(NTopicoSensorTempConfirm);
-
-           Serial.print("NTopicoSensorHum concatenado: ");Serial.println(NTopicoHumSensor);
            Serial.print("NTopicoSensorHumConfirm concatenado: ");Serial.println(NTopicoSensorHumConfirm);
            
            Serial.print("NTopicoPir concatenado: ");Serial.println(NTopicoPir);
