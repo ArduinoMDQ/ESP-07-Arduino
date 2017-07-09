@@ -14,6 +14,14 @@
 #define FLOOR "piso-0"
 #define DEPARTMENT "dto-0"
 
+//*********  prieba  *******************
+
+String cadenaS="";
+
+//****************
+
+
+
 String id_=ID;
 String home_=HOME;
 String site_=SITE;
@@ -37,14 +45,18 @@ const int Adc_Analog=A0;
 
 char* SERVER_LAN = " ";
 char* SERVER_WAN =" ";
+char* sw1= " ";
 
 String temp_str; //see last code block below use these to convert the float that you get back from DHT to a string =str
 String hum_str;
 String adc_str;
+
 char temp[50];
 char hum[50];
 char adc[10];
+char prueba[50]={'c','a','s','a','/','p','i','s','o','-','0','/','d','t','o','-','0','/','l','i','v','i','n','g','/','e','s','p','-','0','0','/','l','i','g','h','t','1'};//38
 
+char* PRUEBA =" ";//"casa/piso-0/dto-0/living/esp-00/light1";
 //////////////////////// AGREGADO NUEVO ANTIREBOTE
 
 const int tiempoAntirebote=20;
@@ -83,6 +95,7 @@ String Wan=" ";
 
 char ssid[20];
 char pass[20];
+char configuracion[30];
 char Topic1[30];
 char Topic2[30];
 char TopicSensor[30];
@@ -98,6 +111,7 @@ char Port[5];
 char UserMqtt[20];
 char PassMqtt[20];
 
+String conf_leido;
 String ssid_leido;
 String pass_leido;
 String Home_leido;
@@ -174,9 +188,6 @@ int dir_id=360;
 int dir_userMqtt=380;
 int dir_passMqtt=400;
 
-
-
-
 ESP8266WebServer server(80);    //creo el servidor en el puerto 80
 WiFiClient wifiClient;          //creo el cliente
 
@@ -239,8 +250,6 @@ delay(10);
 
 ReadDataEprom();
 
-Serial.print("Configuracion: ");
-Serial.println(lee(dir_conf));
 
 if(lee(dir_conf)!="configurado"){
     value=1;
@@ -276,14 +285,57 @@ if(value){
            ServerWan_tamano = ServerWan_leido.length() + 1;
            ServerLan_leido.toCharArray(SERVER_LAN, ServerLan_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
            ServerWan_leido.toCharArray(SERVER_WAN, ServerWan_tamano);
+
+          NTopicoSw1.concat(Home_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Floor_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Department_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Site_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Id_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Topic1_leido);
+
+           NTopicoSw2.concat(Home_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Floor_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Department_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Site_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Id_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Topic2_leido);
+
+           Serial.print("NTopicoSw1 concatenado: ");Serial.println(NTopicoSw1);
+            Serial.print("NTopicoSw2 concatenado: ");Serial.println(NTopicoSw2);
+          
            
+          int largo=NTopicoSw1.length();
+          int largo2=NTopicoSw2.length();
+          
+           for(int i=0;i<=largo;i++)
+            {
+              if(NTopicoSw1.substring(i).equals("") or NTopicoSw1.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoSw1.charAt(i);  
+                }
+            }
+            
+          NTopicoSw1=cadenaS;
+       
+          cadenaS="";
+          for(int i=0;i<=largo2;i++)
+            {
+              if(NTopicoSw2.substring(i).equals("") or NTopicoSw2.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoSw2.charAt(i);  
+                }
+            }
+
+           NTopicoSw2=cadenaS;
+           cadenaS="";
+             
            WiFi.mode(WIFI_STA);
            
            intento_conexion();
     }
   
   modo=0;//normal
-  EEPROM.write(0,modo);
+  EEPROM.write(dir_modo,modo);
   EEPROM.commit();
 }
 
@@ -316,9 +368,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   //convert topic to string to make it easier to work with
   String topicStr = topic; 
-  Serial.print("Topic: ");Serial.print(topicStr);
+  Serial.print("Topic Subscript: ");Serial.print(topicStr);
 
-  if(topicStr == "casa/piso-0/dto-0/living/esp-00/light1"){
+  if(topicStr == NTopicoSw1){
        if(payload[0] == '1'){
           digitalWrite(Relay_1, HIGH);
           client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "On");
@@ -329,9 +381,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
           client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "Off");
            Serial.println(" = 0");
        }
+
+      
   }
   
-  if(topicStr == "casa/piso-0/dto-0/living/esp-00/light2"){
+  if(topicStr == NTopicoSw2){
       if(payload[0] == '1'){
           digitalWrite(Relay_2, HIGH);
           client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "On");
@@ -349,6 +403,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
            SensorHumTemp();
           }
      }
+
+   
 }
 // ***************     Funciones      ****************//
 
@@ -489,7 +545,9 @@ String lee(int addr) {
 void ReadDataEprom(){
 
   Serial.println("Lectura de EEPROM...");
-  
+  Serial.print("Configuracion: ");
+
+  conf_leido   = lee(dir_conf);
   ssid_leido      = lee(dir_ssid);
   pass_leido      = lee(dir_pass);
   Home_leido      = lee(dir_home);
@@ -507,72 +565,71 @@ void ReadDataEprom(){
   UserMqtt_leido  = lee(dir_userMqtt);
   PassMqtt_leido = lee(dir_passMqtt);
   
- 
-  ServerWan_leido = arregla_simbolos(ServerWan_leido);Serial.print("Eprom ServerWan_leido:");Serial.println(ServerWan_leido);
-  ServerLan_leido = arregla_simbolos(ServerLan_leido);Serial.print("Eprom ServerLan_leido:");Serial.println(ServerLan_leido);
+  conf_leido = arregla_simbolos(conf_leido);Serial.print("Eprom ssid_leido:");Serial.println(conf_leido);
   ssid_leido      = arregla_simbolos(ssid_leido);Serial.print("Eprom ssid_leido:");Serial.println(ssid_leido);
   pass_leido      = arregla_simbolos(pass_leido);Serial.print("Eprom pass_leido:");Serial.println(pass_leido);
-  Topic1_leido    = arregla_simbolos(Topic1_leido);Serial.print("Eprom Topic1_leido:");Serial.println(Topic1_leido);
-  Topic2_leido    = arregla_simbolos(Topic2_leido);Serial.print("Eprom Topic2_leido:");Serial.println(Topic2_leido);
+  ServerWan_leido = arregla_simbolos(ServerWan_leido);Serial.print("Eprom ServerWan_leido:");Serial.println(ServerWan_leido);
+  ServerLan_leido = arregla_simbolos(ServerLan_leido);Serial.print("Eprom ServerLan_leido:");Serial.println(ServerLan_leido);
+  Port_leido      = arregla_simbolos(Port_leido);Serial.print("Eprom Port_leido:");Serial.println(Port_leido);
+ 
   Home_leido      = arregla_simbolos(Home_leido);Serial.print("Eprom Home_leido:");Serial.println(Home_leido);
   Floor_leido     = arregla_simbolos(Floor_leido);Serial.print("Eprom Floor_leido:");Serial.println(Floor_leido);
-  Site_leido      = arregla_simbolos(Site_leido);Serial.print("Eprom Site_leido:");Serial.println(Site_leido);
-  Id_leido        = arregla_simbolos(Id_leido);Serial.print("Eprom Id_leido:");Serial.println(Id_leido);
   Department_leido= arregla_simbolos(Department_leido);Serial.print("Eprom Department_leido:");Serial.println(Department_leido);
+  Site_leido      = arregla_simbolos(Site_leido);Serial.print("Eprom Site_leido:");Serial.println(Site_leido);
+  
+  Id_leido        = arregla_simbolos(Id_leido);Serial.print("Eprom Id_leido:");Serial.println(Id_leido);
+  Topic1_leido    = arregla_simbolos(Topic1_leido);Serial.print("Eprom Topic1_leido:");Serial.println(Topic1_leido);
+  Topic2_leido    = arregla_simbolos(Topic2_leido);Serial.print("Eprom Topic2_leido:");Serial.println(Topic2_leido);
   TopicSensor_leido = arregla_simbolos(TopicSensor_leido);Serial.print("Eprom TopicSensor_leido:");Serial.println(TopicSensor_leido);
   TopicPir_leido    = arregla_simbolos(TopicPir_leido);Serial.print("Eprom TopicPir_leido:");Serial.println(TopicPir_leido);
-  Port_leido      = arregla_simbolos(Port_leido);Serial.print("Eprom Port_leido:");Serial.println(Port_leido);
   UserMqtt_leido      = arregla_simbolos(UserMqtt_leido);Serial.print("Eprom UserMqtt_leido:");Serial.println(UserMqtt_leido);
   PassMqtt_leido   = arregla_simbolos(PassMqtt_leido);Serial.print("Eprom PassMqtt_leido:");Serial.println(PassMqtt_leido);
 
   
 
-  ServerWan_tamano  = ServerWan_leido.length() ;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
-  ServerLan_tamano  = ServerLan_leido.length() ;
-  ssid_tamano       = ssid_leido.length() ;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
-  pass_tamano       = pass_leido.length();
-  Topic1_tamano     = Topic1_leido.length();  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
-  Topic2_tamano     = Topic2_leido.length();
-  Home_tamano      = Home_leido.length();
-  Floor_tamano     = Floor_leido.length();
-  Site_tamano      = Site_leido.length();
-  Id_tamano        = Id_leido.length();
-  Department_tamano= Department_leido.length();
-  TopicSensor_tamano = TopicSensor_leido.length();
-  TopicPir_tamano    = TopicPir_leido.length();
-  Port_tamano      = Port_leido.length();
-  UserMqtt_tamano      =UserMqtt_leido.length();
-  PassMqtt_tamano  = PassMqtt_leido.length();
+  ServerWan_tamano    = ServerWan_leido.length() ;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
+  ServerLan_tamano    = ServerLan_leido.length() ;
+  ssid_tamano         = ssid_leido.length() ;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
+  pass_tamano         = pass_leido.length();
+  Topic1_tamano       = Topic1_leido.length();  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
+  Topic2_tamano       = Topic2_leido.length();
+  Home_tamano         = Home_leido.length();
+  Floor_tamano        = Floor_leido.length();
+  Site_tamano         = Site_leido.length();
+  Id_tamano           = Id_leido.length();
+  Department_tamano   = Department_leido.length();
+  TopicSensor_tamano  = TopicSensor_leido.length();
+  TopicPir_tamano     = TopicPir_leido.length();
+  Port_tamano         = Port_leido.length();
+  UserMqtt_tamano     = UserMqtt_leido.length();
+  PassMqtt_tamano     = PassMqtt_leido.length();
   
   ServerWan_leido.toCharArray(ServerWan, ServerWan_tamano); //Transformamos el string en un char array ya que es lo que nos pide WIFI.begin()
   ServerLan_leido.toCharArray(ServerLan, ServerLan_tamano);
   ssid_leido.toCharArray(ssid, ssid_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
   pass_leido.toCharArray(pass, pass_tamano);
+  Port_leido.toCharArray(Port,Port_tamano);
+ 
+  Home_leido.toCharArray(Home,Home_tamano);
+  Floor_leido.toCharArray(Floor,Floor_tamano);
+  Department_leido.toCharArray(Department,Department_tamano);
+  Site_leido.toCharArray(Site,Site_tamano);
+  Id_leido.toCharArray(Id,Id_tamano);
+  
   Topic1_leido.toCharArray(Topic1, Topic1_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
   Topic2_leido.toCharArray(Topic2, Topic2_tamano);
-  Home_leido.toCharArray(Home,Home_tamano);
-  Floor_leido.toCharArray(Floor,Floor_tamano);;
-  Site_leido.toCharArray(Site,Site_tamano);;
-  Id_leido.toCharArray(Id,Id_tamano);;
-  Department_leido.toCharArray(Department,Department_tamano);;
-  TopicSensor_leido.toCharArray(TopicSensor,TopicSensor_tamano);;
-  TopicPir_leido.toCharArray(TopicPir,TopicPir_tamano);;
-  Port_leido.toCharArray(Port,Port_tamano);
+  TopicSensor_leido.toCharArray(TopicSensor,TopicSensor_tamano);
+  TopicPir_leido.toCharArray(TopicPir,TopicPir_tamano);
+ 
+  
   UserMqtt_leido.toCharArray(UserMqtt,UserMqtt_tamano);
   PassMqtt_leido.toCharArray(PassMqtt,PassMqtt_tamano);
-//"casa/piso-0/dto-0/living/esp-00/light1";
-
 
   
-  NTopicoSw1=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido;
-  NTopicoSw2=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido;
-  NTopicoSensor=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido;
-  NTopicoPir=Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido;
-
-  Serial.print("Eprom TopicoSw1:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido);
-  Serial.print("Eprom TopicoSw2:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido);
-  Serial.print("Eprom TopicoSensor:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido);
-  Serial.print("Eprom TopicoPir:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido);
+  Serial.print("Eprom Topico Sw1:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido);
+  Serial.print("Eprom Topico Sw2:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido);
+  Serial.print("Eprom Topico Sensor:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido);
+  Serial.print("Eprom Topico Pir:");Serial.println(Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido);
   
   }
 
@@ -602,10 +659,13 @@ void wifi_conf() {
 
   
    Serial.print(" INFO CARGADA EN LA WEB");
-   Serial.print("NTopicoSw1 : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic1);
-   Serial.print("NTopicoSw2 : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopic2);
-   Serial.print("NTopicoSensor : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicSensor);
-   Serial.print("NTopicoPir : ");Serial.println(getHome+"/"+getFloor+"/"+getDepartment+"/"+getSite+"/"+getId+"/"+getTopicPir);
+  
+
+   Serial.print("NTopicoSw1 : ");Serial.println(NTopicoSw1);
+   Serial.print("NTopicoSw2 : ");Serial.println(NTopicoSw2);
+   Serial.print("NTopicoSensor : ");Serial.println(NTopicoSensor);
+   Serial.print("NTopicoPir : ");Serial.println(NTopicoPir);
+   
    Serial.print("getUserMqtt : ");Serial.println(getUserMqtt);
    Serial.print("getPassMqtt : ");Serial.println(getPassMqtt);
    
@@ -838,24 +898,13 @@ void reconexionMQTT(){
       uint8_t mac[6];
       WiFi.macAddress(mac);
       clientName += macToStr(mac);
-       Serial.println(clientName);
-       String topicS1 =Home_leido+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic1_leido;
-        Serial.print("topicS1: "); Serial.println(topicS1);
-       String topicS2 =Home_leido+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+Topic2_leido;
-       String topicSen =Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicSensor_leido;
-       String topicPir =Home_leido+"/"+Floor_leido+"/"+Department_leido+"/"+Site_leido+"/"+Id_leido+"/"+TopicPir_leido;
-       
-       
-     //  Serial.println(" REconexion MQTT NTopicoSw1 :"); Serial.println(NTopicoSw1);
+      Serial.println(clientName);
 
-       
-           //if connected, subscribe to the topic(s) we want to be notified about
-      if (client.connect((char*) clientName.c_str(),"diego","24305314")){
-      
-        client.subscribe((char*)topicS1.c_str());
-        //client.subscribe((char*)NTopicoSw2.c_str());
-        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11/temp");
-        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11/hum");
+      if (client.connect((char*)clientName.c_str(),(char*)UserMqtt_leido.c_str(),(char*)PassMqtt_leido.c_str())){
+
+       client.subscribe((char*)NTopicoSw1.c_str());
+        client.subscribe((char*)NTopicoSw2.c_str());
+        client.subscribe("casa/piso-0/dto-0/living/esp-00/dht11");
         client.subscribe("casa/piso-0/dto-0/living/esp-00/pir");
         digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
         Serial.println("MTQQ Connected");
@@ -891,11 +940,12 @@ void SensorHumTemp(){
   }
   temp_str=String((int)temperature);
   hum_str=String((int)humidity);
-  Serial.print("Tem: "+temp_str);
+  Serial.print("  Tem: "+temp_str);
   Serial.println("  Hum: "+hum_str);
   
   temp_str.toCharArray(temp, temp_str.length()+1); 
   hum_str.toCharArray(hum, hum_str.length()+1); 
+  
   client.publish("casa/piso-0/dto-0/living/esp-00/dht11/temp/confirm",temp );
   client.publish("casa/piso-0/dto-0/living/esp-00/dht11/hum/confirm",hum );
   
