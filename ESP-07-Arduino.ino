@@ -54,9 +54,7 @@ String adc_str;
 char temp[50];
 char hum[50];
 char adc[10];
-char prueba[50]={'c','a','s','a','/','p','i','s','o','-','0','/','d','t','o','-','0','/','l','i','v','i','n','g','/','e','s','p','-','0','0','/','l','i','g','h','t','1'};//38
 
-char* PRUEBA =" ";//"casa/piso-0/dto-0/living/esp-00/light1";
 //////////////////////// AGREGADO NUEVO ANTIREBOTE
 
 const int tiempoAntirebote=20;
@@ -144,19 +142,27 @@ char* TopicoPirChar;
 String TopicoSensor;
 char* TopicoSensorChar;
 
-static String NTopicoSw1;
-static String NTopicoSw2;
-static String NTopicoPir;
-static String NTopicoSensor;
+String NTopicoSw1;
+String NTopicoSw2;
+String NTopicoPir;
+String NTopicoSensor;
+String NTopicoTempSensor;
+String NTopicoHumSensor;
+
+String NTopicoSw1Confirm;
+String NTopicoSw2Confirm;
+String NTopicoPirConfirm;
+String NTopicoSensorTempConfirm;
+String NTopicoSensorHumConfirm;
 
 String scanWifi;
 
 int ssid_tamano = 0;
 int pass_tamano = 0;
-int Home_tamano;
-int Floor_tamano;
-int Site_tamano;
-int Id_tamano;
+int Home_tamano = 0;
+int Floor_tamano = 0;
+int Site_tamano = 0;
+int Id_tamano = 0;
 int Department_tamano;
 int Topic1_tamano = 0;
 int Topic2_tamano = 0;
@@ -285,52 +291,10 @@ if(value){
            ServerWan_tamano = ServerWan_leido.length() + 1;
            ServerLan_leido.toCharArray(SERVER_LAN, ServerLan_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
            ServerWan_leido.toCharArray(SERVER_WAN, ServerWan_tamano);
-
-          NTopicoSw1.concat(Home_leido);NTopicoSw1.concat('/');
-           NTopicoSw1.concat(Floor_leido);NTopicoSw1.concat('/');
-           NTopicoSw1.concat(Department_leido);NTopicoSw1.concat('/');
-           NTopicoSw1.concat(Site_leido);NTopicoSw1.concat('/');
-           NTopicoSw1.concat(Id_leido);NTopicoSw1.concat('/');
-           NTopicoSw1.concat(Topic1_leido);
-
-           NTopicoSw2.concat(Home_leido);NTopicoSw2.concat('/');
-           NTopicoSw2.concat(Floor_leido);NTopicoSw2.concat('/');
-           NTopicoSw2.concat(Department_leido);NTopicoSw2.concat('/');
-           NTopicoSw2.concat(Site_leido);NTopicoSw2.concat('/');
-           NTopicoSw2.concat(Id_leido);NTopicoSw2.concat('/');
-           NTopicoSw2.concat(Topic2_leido);
-
-           Serial.print("NTopicoSw1 concatenado: ");Serial.println(NTopicoSw1);
-            Serial.print("NTopicoSw2 concatenado: ");Serial.println(NTopicoSw2);
-          
-           
-          int largo=NTopicoSw1.length();
-          int largo2=NTopicoSw2.length();
-          
-           for(int i=0;i<=largo;i++)
-            {
-              if(NTopicoSw1.substring(i).equals("") or NTopicoSw1.substring(i).equals(" "))
-              {              
-                }else{ cadenaS += NTopicoSw1.charAt(i);  
-                }
-            }
             
-          NTopicoSw1=cadenaS;
-       
-          cadenaS="";
-          for(int i=0;i<=largo2;i++)
-            {
-              if(NTopicoSw2.substring(i).equals("") or NTopicoSw2.substring(i).equals(" "))
-              {              
-                }else{ cadenaS += NTopicoSw2.charAt(i);  
-                }
-            }
-
-           NTopicoSw2=cadenaS;
-           cadenaS="";
-             
+           ConcatenarTopicos();// esta fncion crea los topicas para   que se subscriban
+                                // con los strings correctos quitando los espacion que molestan y dan error
            WiFi.mode(WIFI_STA);
-           
            intento_conexion();
     }
   
@@ -373,12 +337,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if(topicStr == NTopicoSw1){
        if(payload[0] == '1'){
           digitalWrite(Relay_1, HIGH);
-          client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "On");
+          client.publish((char*)NTopicoSw1Confirm.c_str(), "On");
             Serial.println(" = 1");
           }
        else {
           digitalWrite(Relay_1, LOW);
-          client.publish("casa/piso-0/dto-0/living/esp-00/light1/confirm", "Off");
+          client.publish((char*)NTopicoSw1Confirm.c_str(), "Off");
            Serial.println(" = 0");
        }
 
@@ -388,22 +352,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if(topicStr == NTopicoSw2){
       if(payload[0] == '1'){
           digitalWrite(Relay_2, HIGH);
-          client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "On");
+          client.publish((char*)NTopicoSw2Confirm.c_str(), "On");
            Serial.println(" = 1");
           }
       else{
           digitalWrite(Relay_2, LOW);
-         client.publish("casa/piso-0/dto-0/living/esp-00/light2/confirm", "Off");
+         client.publish((char*)NTopicoSw2Confirm.c_str(), "Off");
           Serial.println(" = 0");
       }
     }
 
-  if(topicStr == "casa/piso-0/dto-0/living/esp-00/dht11"){
+  if(topicStr == NTopicoSensor){
        if(payload[0] == '1'){
            SensorHumTemp();
           }
      }
-
+ if(topicStr == NTopicoPir){
+       if(payload[0] == '1'){
+       
+          client.publish((char*)NTopicoPirConfirm.c_str(), "On");
+           Serial.println("pir = 1");
+          }
+      else{
+          
+         client.publish((char*)NTopicoPirConfirm.c_str(), "Off");
+          Serial.println("pir = 0");
+      }
+     }
    
 }
 // ***************     Funciones      ****************//
@@ -946,8 +921,8 @@ void SensorHumTemp(){
   temp_str.toCharArray(temp, temp_str.length()+1); 
   hum_str.toCharArray(hum, hum_str.length()+1); 
   
-  client.publish("casa/piso-0/dto-0/living/esp-00/dht11/temp/confirm",temp );
-  client.publish("casa/piso-0/dto-0/living/esp-00/dht11/hum/confirm",hum );
+  client.publish((char*)NTopicoSensorTempConfirm.c_str(),temp );
+  client.publish((char*)NTopicoSensorTempConfirm.c_str(),hum );
   
   digitalWrite(Led_Verde,true);
   Serial.print("Tiempo de lectura de sensor:"); Serial.print(millis()-tiempo);Serial.println(" mseg.");
@@ -1031,7 +1006,7 @@ void Botones(){
 
  } 
 
-void BotonConfiguracion(){
+ void BotonConfiguracion(){
   
       estadoBtn_Config=!digitalRead(Btn_Config);
       if(estadoBtn_Config!=estadoBtn_ConfigAnterior){
@@ -1050,4 +1025,109 @@ void BotonConfiguracion(){
       estadoBtn_ConfigAnterior=estadoBtn_Config;
   }
  
+ void ConcatenarTopicos(){
+  
+           NTopicoSw1.concat(Home_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Floor_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Department_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Site_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Id_leido);NTopicoSw1.concat('/');
+           NTopicoSw1.concat(Topic1_leido);
+          
+
+           NTopicoSw2.concat(Home_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Floor_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Department_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Site_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Id_leido);NTopicoSw2.concat('/');
+           NTopicoSw2.concat(Topic2_leido);
+
+           NTopicoSensor.concat(Home_leido);NTopicoSensor.concat('/');
+           NTopicoSensor.concat(Floor_leido);NTopicoSensor.concat('/');
+           NTopicoSensor.concat(Department_leido);NTopicoSensor.concat('/');
+           NTopicoSensor.concat(Site_leido);NTopicoSensor.concat('/');
+           NTopicoSensor.concat(Id_leido);NTopicoSensor.concat('/');
+           NTopicoSensor.concat(TopicSensor_leido);
+
+           NTopicoPir.concat(Home_leido);NTopicoPir.concat('/');
+           NTopicoPir.concat(Floor_leido);NTopicoPir.concat('/');
+           NTopicoPir.concat(Department_leido);NTopicoPir.concat('/');
+           NTopicoPir.concat(Site_leido);NTopicoPir.concat('/');
+           NTopicoPir.concat(Id_leido);NTopicoPir.concat('/');
+           NTopicoPir.concat(TopicPir_leido);
+
+                
+           
+          int largo=NTopicoSw1.length();
+          int largo2=NTopicoSw2.length();
+          int largo3=NTopicoSensor.length();
+          int largo4=NTopicoPir.length();
+          
+           for(int i=0;i<=largo;i++)
+            {
+              if(NTopicoSw1.substring(i).equals("") or NTopicoSw1.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoSw1.charAt(i);  
+                }
+            }
+            
+          NTopicoSw1=cadenaS;
+          NTopicoSw1Confirm=cadenaS+"/confirm";
+          
+          cadenaS="";
+          for(int i=0;i<=largo2;i++)
+            {
+              if(NTopicoSw2.substring(i).equals("") or NTopicoSw2.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoSw2.charAt(i);  
+                }
+            }
+
+           NTopicoSw2=cadenaS;
+           NTopicoSw2Confirm=cadenaS+"/confirm";
+           cadenaS="";
+
+           for(int i=0;i<=largo3;i++)
+            {
+              if(NTopicoSensor.substring(i).equals("") or NTopicoSensor.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoSensor.charAt(i);  
+                }
+            }
+
+           NTopicoSensor=cadenaS;
+           NTopicoSensorTempConfirm=cadenaS+"/temp/confirm";
+           NTopicoSensorHumConfirm=cadenaS+"/hum/confirm";
+           cadenaS="";
+
+           for(int i=0;i<=largo4;i++)
+            {
+              if(NTopicoPir.substring(i).equals("") or NTopicoPir.substring(i).equals(" "))
+              {              
+                }else{ cadenaS += NTopicoPir.charAt(i);  
+                }
+            }
+
+           NTopicoPir=cadenaS;
+           NTopicoPirConfirm=cadenaS+"/confirm";
+           cadenaS="";
+
+           Serial.print("NTopicoSw1 concatenado: ");Serial.println(NTopicoSw1);
+           Serial.print("NTopicoSw1Confirm concatenado: ");Serial.println(NTopicoSw1Confirm);
+           
+           Serial.print("NTopicoSw2 concatenado: ");Serial.println(NTopicoSw2);
+           Serial.print("NTopicoSw2Confirm concatenado: ");Serial.println(NTopicoSw2Confirm);
+           
+           Serial.print("NTopicoSensorTemp concatenado: ");Serial.println(NTopicoTempSensor);
+           Serial.print("NTopicoSensorTempConfirm concatenado: ");Serial.println(NTopicoSensorTempConfirm);
+
+           Serial.print("NTopicoSensorHum concatenado: ");Serial.println(NTopicoHumSensor);
+           Serial.print("NTopicoSensorHumConfirm concatenado: ");Serial.println(NTopicoSensorHumConfirm);
+           
+           Serial.print("NTopicoPir concatenado: ");Serial.println(NTopicoPir);
+           Serial.print("NTopicoPirConfirm concatenado: ");Serial.println(NTopicoPirConfirm);
+           
+  
+  
+  }
  
