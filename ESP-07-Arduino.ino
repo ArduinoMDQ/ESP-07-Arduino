@@ -195,44 +195,16 @@ int dir_userMqtt=380;
 int dir_passMqtt=400;
 
 ESP8266WebServer server(80);    //creo el servidor en el puerto 80
+ESP8266WebServer serverInfo(80);    //creo el servidor en el puerto 80
+
 WiFiClient wifiClient;          //creo el cliente
 
 
 // defino pagina de inicio
-String pral = "<html>"
-              "<meta http-equiv='Content-Type' content='text/html  ; charset=utf-8'/>"
-              "<title>ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
-              "<body> "
-              "<title>CONFIGURACION</title><br>"              
-              "<form action='config' method='get' target='pantalla'>"
-              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:300px; height:600px; padding:20px; margin: 20px;'>"
-              "<legend><strong>CONFIGURATION</strong></legend>"              
-              "<div align=center>WIRELESS</div><br>"
-              "<div align=left> Wifi........<input name='ssid' type='text' size='15'/></div>"
-              "<div align=left> Pass........<input name='pass' type='password' size='15'/></div>"
-              "<div align=left> Wan........<input name='serverwan' type='text' size='15'/> </div>"
-              "<div align=left> Lan.........<input name='serverlan' type='text' size='15'/> </div>"
-              "<div align=left> Port.........<input name='port' type='TEXT' size='5'/> </div><br>"
-              "<div align=center>TOPICS</div><br>"             
-              "<div align=left>Home......<input name='home' type='text' size='15'/> </div>"
-              "<div align=left>Floor........<input name='floor' type='text' size='15'/> </div>"
-              "<div align=left>Depart.......<input name='department' type='text' size='15'/> </div>"
-              "<div align=left>Place.......<input name='site' type='text' size='15'/> </div><br>"              
-              "<div align=center>DEVICE</div><br>"
-              "<div align=left>ID............<input name='id' type='text' size='15'/> </div>"
-              "<div align=left>Switch 1..<input name='topic1' type='text' size='15'/> </div>"
-              "<div align=left>Switch 2..<input name='topic2' type='text' size='15'/> </div>"
-              "<div align=left>Sensor.....<input name='topicsensor' type='text' size='15'/> 3.3 vcc</div>"
-              "<div align=left>Pir...........<input name='topicpir' type='text' size='15'/> 5 vcc</div><br>"
-              "<div align=center>MQTT</div><br>"           
-              "<div align=left>User.......<input name='userMqtt' type='text' size='15'/> </div>"
-              "<div align=left>Password..<input name='passMqtt' type='password' size='15'/> </div><br>"             
-              "<input type='submit' value='APPLY CONFIGURATION' />"
-              "</fieldset>"
-              "</form>"
-              "<iframe id='pantalla' name='pantalla' src='' width=1200px height=700px frameborder='0' scrolling='yes'></iframe>"
-              "</body>"
-              "</html>";
+String pral ;
+
+String pagina ;
+
 
 void setup() {
 
@@ -255,7 +227,10 @@ value = EEPROM.read(0);//carga el valor 1 si no esta configurado o 0 si esta con
 delay(10);
 
 ReadDataEprom();
-
+ConcatenarTopicos();// esta fncion crea los topicas para   que se subscriban
+                             // con los strings correctos quitando los espacion que molestan y dan error
+datosPaginaWeb(); // web con la info del dispositivo
+datosPaginaWebConfiguracion(); // web con la info de la configuracion dispositivo
 
 if(lee(dir_conf)!="configurado"){
     value=1;
@@ -285,6 +260,7 @@ if(value){
 
       }else{
            Serial.println("**********MODO NORMAL************");  
+           
            ServerLan_leido= lee(dir_serverlan);
            ServerWan_leido= lee(dir_serverwan);
            ServerLan_tamano = ServerLan_leido.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
@@ -292,10 +268,16 @@ if(value){
            ServerLan_leido.toCharArray(SERVER_LAN, ServerLan_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
            ServerWan_leido.toCharArray(SERVER_WAN, ServerWan_tamano);
             
-           ConcatenarTopicos();// esta fncion crea los topicas para   que se subscriban
-                                // con los strings correctos quitando los espacion que molestan y dan error
+           
            WiFi.mode(WIFI_STA);
            intento_conexion();
+
+          serverInfo.on("/", []() {serverInfo.send(200, "text/html", pagina);});
+          //serverInfo.on("/info", wifi_info);
+          serverInfo.begin();
+          
+
+           
     }
   
   modo=0;//normal
@@ -303,7 +285,7 @@ if(value){
   EEPROM.commit();
 }
 
-PubSubClient client(SERVER_WAN, 1883, callback, wifiClient);
+PubSubClient client(SERVER_WAN,1883, callback, wifiClient);
 
 void loop() {
    Botones();
@@ -315,6 +297,7 @@ void loop() {
       else{ 
        //maintain MQTT connection
        client.loop();
+       serverInfo.handleClient();
        if (WiFi.status() == WL_CONNECTED) { 
             digitalWrite(Led_Verde,true);
             reconexionMQTT();
@@ -344,9 +327,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
           digitalWrite(Relay_1, LOW);
           client.publish((char*)NTopicoSw1Confirm.c_str(), "Off");
            Serial.println(" = 0");
-       }
-
-      
+       }  
   }
   
   if(topicStr == NTopicoSw2){
@@ -476,18 +457,6 @@ void blink_100(){
     delay(50);
     digitalWrite(Led_Verde,pin);
   
-  }
-
-void blinkLento(){
-    digitalWrite(Led_Verde,false);
-    delay(500);
-    digitalWrite(Led_Verde,true);
-    delay(500);
-    digitalWrite(Led_Verde,false);
-    delay(500);
-    digitalWrite(Led_Verde,true);
-    delay(500);
-    
   }
 
 //*******  G R A B A R  EN LA  E E P R O M  ************
@@ -790,6 +759,16 @@ void wifi_conf() {
   + "<br>El equipo se reiniciara Conectandose a la red configurada."));
   delay(100);
   ESP.restart();
+ }
+//**** INFO DISPOSITIVO WIFI  *******
+void wifi_info() {
+ 
+  
+  Serial.print("sERVER INFO: ");
+ 
+  
+  serverInfo.send(200, "text/html", String("<br>INFOOO.<br>"));
+
 }
 
 void intento_conexion() {
@@ -869,7 +848,8 @@ void reconexionMQTT(){
     // Generate client name based on MAC address and last 8 bits of microsecond counter
       String clientName;
      //clientName += getId+"esp8266-";
-     clientName += "esp8266-";
+     clientName += Id_leido;
+     clientName += "_";
       uint8_t mac[6];
       WiFi.macAddress(mac);
       clientName += macToStr(mac);
@@ -879,12 +859,10 @@ void reconexionMQTT(){
 
        client.subscribe((char*)NTopicoSw1.c_str());
        client.subscribe((char*)NTopicoSw2.c_str());
-      //  client.subscribe("casa/piso-0/dto-0/living/esp-01/dht11");
        client.subscribe((char*)NTopicoSensor.c_str());
        client.subscribe((char*)NTopicoPir.c_str());
-      //  client.subscribe("casa/piso-0/dto-0/living/esp-01/pir");
-        digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
-        Serial.println("MTQQ Connected");
+       digitalWrite(Led_Verde,true);// wifi + mqtt ok !!!
+       Serial.println("MTQQ Connected");
       }
       //otherwise print failed for debugging
       else{
@@ -1120,18 +1098,109 @@ void Botones(){
 
            Serial.print("NTopicoSw1 concatenado: ");Serial.println(NTopicoSw1);
            Serial.print("NTopicoSw1Confirm concatenado: ");Serial.println(NTopicoSw1Confirm);
-           
            Serial.print("NTopicoSw2 concatenado: ");Serial.println(NTopicoSw2);
            Serial.print("NTopicoSw2Confirm concatenado: ");Serial.println(NTopicoSw2Confirm);
-           
            Serial.print("NTopicoSensor concatenado: ");Serial.println(NTopicoSensor);
            Serial.print("NTopicoSensorTempConfirm concatenado: ");Serial.println(NTopicoSensorTempConfirm);
            Serial.print("NTopicoSensorHumConfirm concatenado: ");Serial.println(NTopicoSensorHumConfirm);
-           
            Serial.print("NTopicoPir concatenado: ");Serial.println(NTopicoPir);
            Serial.print("NTopicoPirConfirm concatenado: ");Serial.println(NTopicoPirConfirm);
-           
-  
+ 
+  }
+
+ void datosPaginaWebConfiguracion(){
+
+pral = "<html>"
+              "<meta http-equiv='Content-Type' content='text/html  ; charset=utf-8'/>"
+              "<title>ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
+              "<body> "
+              "<title>CONFIGURACION</title><br>"              
+              "<form action='config' method='get' target='pantalla'>"
+              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:300px; height:600px; padding:20px; margin: 20px;'>"
+              "<legend><strong>CONFIGURATION</strong></legend>"              
+              "<div align=center>WIRELESS</div><br>"
+              "<div align=left> Wifi........<input name='ssid' type='text' size='15'/></div>"
+              "<div align=left> Pass........<input name='pass' type='password' size='15'/></div>"
+              "<div align=left> Wan........<input name='serverwan' type='text' size='15'/> </div>"
+              "<div align=left> Lan.........<input name='serverlan' type='text' size='15'/> </div>"
+              "<div align=left> Port.........<input name='port' type='TEXT' size='5'/> </div><br>"
+              "<div align=center>TOPICS</div><br>"             
+              "<div align=left>Home......<input name='home' type='text' size='15'/> </div>"
+              "<div align=left>Floor........<input name='floor' type='text' size='15'/> </div>"
+              "<div align=left>Depart.......<input name='department' type='text' size='15'/> </div>"
+              "<div align=left>Place.......<input name='site' type='text' size='15'/> </div><br>"              
+              "<div align=center>DEVICE</div><br>"
+              "<div align=left>ID............<input name='id' type='text' size='15'/> </div>"
+              "<div align=left>Switch 1..<input name='topic1' type='text' size='15'/> </div>"
+              "<div align=left>Switch 2..<input name='topic2' type='text' size='15'/> </div>"
+              "<div align=left>Sensor.....<input name='topicsensor' type='text' size='15'/> 3.3 vcc</div>"
+              "<div align=left>Pir...........<input name='topicpir' type='text' size='15'/> 5 vcc</div><br>"
+              "<div align=center>MQTT</div><br>"           
+              "<div align=left>User.......<input name='userMqtt' type='text' size='15'/> </div>"
+              "<div align=left>Password..<input name='passMqtt' type='password' size='15'/> </div><br>"             
+              "<input type='submit' value='APPLY CONFIGURATION' />"
+              "</fieldset>"
+              "</form>"
+              "<iframe id='pantalla' name='pantalla' src='' width=1200px height=700px frameborder='0' scrolling='yes'></iframe>"
+              "</body>"
+              "</html>";
+
   
   }
  
+ void datosPaginaWeb(){
+  pagina = "<html>"
+              "<meta http-equiv='Content-Type' content='text/html  ; charset=utf-8'/>"
+              "<title>ESP8266</title> <style type='text/css'> body,td,th { color: #036; } body { background-color: #999; } </style> </head>"
+              "<body> "
+              "<title>CONFIGURACION</title><br>"              
+              "<form action='config' method='get' target='pantalla'>"
+              "<fieldset align='center' style='border-style:solid; border-color:#336666; width:500px; height:400px; padding:20px; margin: 20px;'>"
+              "<legend><strong>INFO </strong></legend>"              
+              "<div align=center><strong>Equipo: "+CorregirString(Id_leido)+"</strong></div><br>"
+
+              "<div align=left>   Wifi :"+CorregirString(ssid_leido) +" </div><br>"
+
+              "<div align=left>Id : "+ CorregirString(Id_leido) +"</div><br>" 
+              "<div align=left>Home : "+ CorregirString(Home_leido) +"</div>"  
+              "<div align=left>Floor : "+ CorregirString(Floor_leido) +"</div>"  
+              "<div align=left>Department : "+ CorregirString(Department_leido) +"</div>"  
+              "<div align=left>Site: "+ CorregirString(Site_leido) +"</div><br>"  
+
+
+              
+              "<div align=left>Topic Sw1 : "+ NTopicoSw1 +"</div>"  
+              "<div align=left>Topic Sw2 : "+NTopicoSw2 +" </div>"
+              "<div align=left>Topic Sensor: "+ NTopicoSensor +"</div>"  
+              "<div align=left>Topic Pir : "+NTopicoPir +" </div><br>"
+
+               "<div align=left>Wan mqtt : "+CorregirString(ServerWan_leido) +" </div>"
+               "<div align=left>Lan Mqtt : "+CorregirString(ServerLan_leido) +" </div>"
+               "<div align=left>Port : "+CorregirString(Port_leido) +" </div>"
+               "<div align=left>User : "+CorregirString(UserMqtt_leido) +" </div>"
+               "<div align=left>Pass : "+CorregirString(PassMqtt_leido) +" </div>"
+               
+              "</fieldset>"
+              "</form>"
+              "<iframe id='pantalla' name='pantalla' src='' width=1200px height=700px frameborder='0' scrolling='yes'></iframe>"
+              "</body>"
+              "</html>";
+
+  
+  }
+
+ String CorregirString (String str_entrada){
+    String str_salida;
+    int longitud=str_entrada.length();
+  
+    
+    for(int i=0;i<=longitud;i++)
+            {
+              if(str_entrada.substring(i).equals("") or str_entrada.substring(i).equals(" "))
+              {              
+                }else{ str_salida += str_entrada.charAt(i);  
+                }
+            }
+    
+    return str_salida;
+    }
