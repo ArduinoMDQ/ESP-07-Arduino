@@ -7,7 +7,7 @@
 #define MQTT_SERVER_LAN "192.168.1.106"
 //#define MQTT_SERVER_WAN "giovanazzi.ddns.net"
 #define MQTT_SERVER_WAN "idirect.dlinkddns.com"
-#define PORT "1883"
+
 #define HOME "casa"
 #define ID "esp-00"
 #define SITE "living"
@@ -44,7 +44,8 @@ const int Adc_Analog=A0;
 //********** fin pines **********************
 
 char* SERVER_LAN = " ";
-char* SERVER_WAN =" ";
+char* SERVER_WAN = " ";
+int  PORT=1883;
 char* sw1= " ";
 
 String temp_str; //see last code block below use these to convert the float that you get back from DHT to a string =str
@@ -227,6 +228,10 @@ value = EEPROM.read(0);//carga el valor 1 si no esta configurado o 0 si esta con
 delay(10);
 
 ReadDataEprom();
+
+PORT=CorregirString(Port_leido).toInt();
+Serial.print("PORT");
+Serial.println(PORT);
 ConcatenarTopicos();// esta fncion crea los topicas para   que se subscriban
                              // con los strings correctos quitando los espacion que molestan y dan error
 datosPaginaWeb(); // web con la info del dispositivo
@@ -237,7 +242,7 @@ if(lee(dir_conf)!="configurado"){
    }
     
 if(value){
-          
+            Serial.println();Serial.println();
             Serial.println("**********MODO CONFIGURACION************");
             scanWIFIS();
             Serial.print("Configuring access point...");
@@ -259,25 +264,23 @@ if(value){
             Serial.println();
 
       }else{
+         Serial.println();  
+          Serial.println();  
            Serial.println("**********MODO NORMAL************");  
-           
-           ServerLan_leido= lee(dir_serverlan);
-           ServerWan_leido= lee(dir_serverwan);
-           ServerLan_tamano = ServerLan_leido.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
-           ServerWan_tamano = ServerWan_leido.length() + 1;
-           ServerLan_leido.toCharArray(SERVER_LAN, ServerLan_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
-           ServerWan_leido.toCharArray(SERVER_WAN, ServerWan_tamano);
+            Serial.println();  
             
-           
-           WiFi.mode(WIFI_STA);
-           intento_conexion();
-
+          ServerLan_leido= lee(dir_serverlan);
+          ServerWan_leido= lee(dir_serverwan);
+          ServerLan_tamano = ServerLan_leido.length() + 1;  //Calculamos la cantidad de caracteres que tiene el ssid y la clave
+          ServerWan_tamano = ServerWan_leido.length() + 1;
+          ServerLan_leido.toCharArray(SERVER_LAN, ServerLan_tamano); //Transf. el String en un char array ya que es lo que nos pide WiFi.begin()
+          ServerWan_leido.toCharArray(SERVER_WAN, ServerWan_tamano);
+       
+          WiFi.mode(WIFI_STA);
+          intento_conexion();
           serverInfo.on("/", []() {serverInfo.send(200, "text/html", pagina);});
-          //serverInfo.on("/info", wifi_info);
           serverInfo.begin();
-          
-
-           
+         
     }
   
   modo=0;//normal
@@ -285,7 +288,7 @@ if(value){
   EEPROM.commit();
 }
 
-PubSubClient client(SERVER_WAN,1883, callback, wifiClient);
+PubSubClient client(SERVER_WAN,PORT, callback, wifiClient);
 
 void loop() {
    Botones();
@@ -875,9 +878,14 @@ void reconexionMQTT(){
          //  blinkLento();
            cuenta++;   
            Serial.print("cuenta: ");Serial.println(cuenta);
-           if(cuenta>4){
-            Serial.println("abortooo");
-              ESP.restart();
+           if(cuenta>10){
+            Serial.println("Reinicio modo configuracion");
+            
+            /*modo=1;//configuracion
+            EEPROM.write(dir_modo,modo);
+            EEPROM.commit();
+            delay(10);*/
+            ESP.restart();
              }
          }
     }
