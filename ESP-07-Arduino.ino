@@ -1,12 +1,16 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+
+
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 #include <PubSubClient.h>
 #include <SimpleDHT.h>
 
-#define MQTT_SERVER_LAN "192.168.1.106"
+#define MQTT_SERVER_LAN "192.168.1.107"
 //#define MQTT_SERVER_WAN "giovanazzi.ddns.net"
-#define MQTT_SERVER_WAN "idirect.dlinkddns.com"
+#define MQTT_SERVER_WAN "giovanazzi.dyndns-free.com"
 
 #define HOME "casa"
 #define ID "esp-00"
@@ -19,6 +23,13 @@
 String cadenaS="";
 
 //****************
+
+///////  OTA
+
+bool ota_flag = true;
+uint16_t time_elapsed = 0;
+
+
 
 
 
@@ -200,7 +211,6 @@ ESP8266WebServer serverInfo(80);    //creo el servidor en el puerto 80
 
 WiFiClient wifiClient;          //creo el cliente
 
-
 // defino pagina de inicio
 String pral ;
 
@@ -212,6 +222,8 @@ void setup() {
 Serial.begin(115200);
 Serial.println();
 EEPROM.begin(512);
+
+
 
 //pinMode(A0,INPUT);
 pinMode(pinPIR,INPUT);
@@ -286,14 +298,22 @@ if(value){
   modo=0;//normal
   EEPROM.write(dir_modo,modo);
   EEPROM.commit();
+
+
+
+  
 }
 
-PubSubClient client(SERVER_WAN,PORT, callback, wifiClient);
+//PubSubClient client(SERVER_WAN,PORT, callback, wifiClient);
+PubSubClient client(SERVER_LAN,PORT, callback, wifiClient);
 
 void loop() {
+  
+
    Botones();
       if(value){
         server.handleClient();
+         Botones();
         delay(500);
         digitalWrite(Led_Verde,!digitalRead(Led_Verde)); 
          }
@@ -351,7 +371,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
            SensorHumTemp();
           }
      }
- if(topicStr == NTopicoPir){
+ 
+  if(topicStr == NTopicoPir){
        if(payload[0] == '1'){
        
           client.publish((char*)NTopicoPirConfirm.c_str(), "On");
@@ -816,7 +837,13 @@ void intento_conexion() {
     int cuenta = 0;
     WiFi.begin(ssid, pass);      //Intentamos conectar
     while (WiFi.status() != WL_CONNECTED) {
-      delay(400);
+      delay(100);
+      Botones();
+      delay(100);
+      Botones();
+      delay(100);
+      Botones();
+      delay(100);
       blink50();
       cuenta++;
       Botones();
@@ -877,6 +904,8 @@ void reconexionMQTT(){
            // Wait 3 seconds before retrying
          //  blinkLento();
            cuenta++;   
+            
+           Botones();
            Serial.print("cuenta: ");Serial.println(cuenta);
            if(cuenta>10){
             Serial.println("Reinicio modo configuracion");
@@ -1212,3 +1241,6 @@ pral = "<html>"
     
     return str_salida;
     }
+
+
+  
